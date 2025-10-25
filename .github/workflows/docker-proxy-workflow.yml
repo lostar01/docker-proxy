@@ -1,0 +1,25 @@
+name: Docker Image Proxy
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  init-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Docker version
+        run: docker --version
+      - name: Pull Image and Push
+        run: |
+          IMAGE_LIST=( `cat proxy-image.txt` )
+          docker login --username=${{ DUSERNAME }} ${{ DREPO }} --password ${{ DUSERPASS }}
+          for image in ${IMAGE_LIST[@]}
+          do
+            docker pull ${image}
+            REPO_NAME=`echo ${image}|awk -F '/' '{print $NF}'|awk -F ':' '{print $1"-"$2 }'`
+            DEST_IMAGE=${{ DREPO }}/lostar01/ops:${REPO_NAME}
+            docker tag ${image} ${DEST_IMAGE}
+            docker push ${DEST_IMAGE}
+          done
